@@ -216,8 +216,8 @@ Particionamento por chave de negócio
 
 ---
 
-## 👤 Autor
-Thiago Reis Lima
+## 👤 Autor - Thiago Reis Lima
+
 Projeto desenvolvido como case profissional, focado em engenharia de software distribuída, mensageria e boas práticas de sistemas assíncronos.
 
 ---
