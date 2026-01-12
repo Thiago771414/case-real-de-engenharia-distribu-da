@@ -1,12 +1,14 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { KafkaClient } from "./messaging/kafka";
-import { KafkaConsumer } from "./messaging/consumer";
-import { IdempotencyStore } from "./orders/idempotency.store";
-import { OrdersProcessor } from "./orders/orders.processor";
+import { MessagingModule } from "./messaging/messaging.module";
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true })],
-  providers: [KafkaClient, KafkaConsumer, IdempotencyStore, OrdersProcessor],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ["../../.env", ".env"],
+    }),
+    MessagingModule,
+  ],
 })
 export class AppModule {}

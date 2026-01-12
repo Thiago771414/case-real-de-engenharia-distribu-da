@@ -4,7 +4,10 @@ import { OrdersModule } from "./orders/orders.module";
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }), // <- garante ConfigService em todo lugar
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ["../../.env", ".env"],
+    }),
     OrdersModule,
   ],
 })

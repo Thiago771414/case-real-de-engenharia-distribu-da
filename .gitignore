@@ -137,3 +137,30 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Env (keep examples)
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Node / pnpm
+node_modules/
+.pnpm-store/
+pnpm-debug.log*
+
+# Build / cache
+dist/
+build/
+coverage/
+.nyc_output/
+.cache/
+.turbo/
+*.tsbuildinfo
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
