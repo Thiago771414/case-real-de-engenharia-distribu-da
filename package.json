@@ -9,5 +9,10 @@
     "infra:up": "docker compose -f infra/docker-compose.yml up -d",
     "infra:down": "docker compose -f infra/docker-compose.yml down -v",
     "infra:logs": "docker compose -f infra/docker-compose.yml logs -f"
+  },
+  "pnpm": {
+    "overrides": {
+      "lru-cache": "^10.4.3"
+    }
   }
 }

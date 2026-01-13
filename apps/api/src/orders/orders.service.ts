@@ -23,7 +23,7 @@ export class OrdersService {
 
     const event: OrdersCreatedEvent = {
       eventId: randomUUID(),
-      type: "orders.created",
+      type: "orders.created.v1",
       occurredAt: new Date().toISOString(),
       correlationId,
       idempotencyKey,
@@ -35,11 +35,15 @@ export class OrdersService {
       },
     };
 
-    await this.producer.send(TOPICS.ORDERS_CREATED, event);
+    await this.producer.send(TOPICS.ORDERS_CREATED, event, {
+      correlationId,
+      idempotencyKey,
+      eventType: event.type,
+    });
 
     return {
       orderId,
-      status: "created" as const,
+      status: "created",
       total,
     };
   }

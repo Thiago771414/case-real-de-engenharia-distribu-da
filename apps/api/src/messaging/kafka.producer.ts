@@ -19,10 +19,25 @@ export class KafkaProducer implements OnModuleInit, OnModuleDestroy {
     await this.producer?.disconnect();
   }
 
-  async send(topic: string, value: unknown) {
-    await this.producer.send({
+  async send(topic: string, payload: unknown, meta?: {
+  correlationId?: string;
+  idempotencyKey?: string;
+  eventType?: string;
+}) {
+  const value = JSON.stringify(payload);
+
+  await this.producer.send({
       topic,
-      messages: [{ value: JSON.stringify(value) }],
+      messages: [
+        {
+          value,
+          headers: {
+            "x-correlation-id": meta?.correlationId ?? "",
+            "x-idempotency-key": meta?.idempotencyKey ?? "",
+            "x-event-type": meta?.eventType ?? "",
+          },
+        },
+      ],
     });
   }
 }
