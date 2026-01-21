@@ -4,10 +4,14 @@ import { KafkaProducer } from "../messaging/kafka.producer";
 import { TOPICS } from "../messaging/topics";
 import { calcTotal, CreateOrderBodySchema } from "./orders.schema";
 import { OrdersCreatedEvent } from "./orders.events";
+import { MetricsService } from "../metrics/metrics.service";
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly producer: KafkaProducer) {}
+  constructor(
+    private readonly producer: KafkaProducer,
+    private readonly metrics: MetricsService,
+  ) {}
 
   async createOrder(
     input: unknown,
@@ -40,6 +44,9 @@ export class OrdersService {
       idempotencyKey,
       eventType: event.type,
     });
+
+    // ✅ métrica: pedido criado/publicado no Kafka
+    this.metrics.ordersCreated.inc();
 
     return {
       orderId,
