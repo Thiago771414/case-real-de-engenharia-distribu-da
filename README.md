@@ -116,6 +116,15 @@ Worker publica orders.processed
 
 ---
 
+### Observabilidade
+
+- Métricas no estilo Prometheus (`/metrics`)
+- Rastreamento distribuído com OpenTelemetry
+- CorrelationId propagado via HTTP → Kafka → Worker
+- Métricas para novas tentativas, DLQ e tempo de processamento
+  
+---
+
 ## 📡 Diagrama de arquitetura
   Client -->|POST /orders| API
   API -->|orders.created| Kafka[(Kafka)]
