@@ -1,7 +1,10 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { OrdersModule } from "./orders/orders.module";
+import { DbModule } from "./db/db.module";
+import { OutboxModule } from "./outbox/outbox.module";
 import { MetricsModule } from "./metrics/metrics.module";
+import { OrdersModule } from "./orders/orders.module";
+import { MessagingModule } from "./messaging/messaging.module";
 
 @Module({
   imports: [
@@ -9,8 +12,11 @@ import { MetricsModule } from "./metrics/metrics.module";
       isGlobal: true,
       envFilePath: ["../../.env", ".env"],
     }),
-    OrdersModule,
+    DbModule,
     MetricsModule,
+    MessagingModule,
+    OutboxModule,
+    OrdersModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }
