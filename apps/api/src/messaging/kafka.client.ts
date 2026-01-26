@@ -8,6 +8,7 @@ export class KafkaClient {
 
   constructor(private readonly config: ConfigService) {
     const broker = this.config.get<string>("KAFKA_BROKER") ?? "localhost:9092";
+
     this.kafka = new Kafka({
       clientId: "minishop-api",
       brokers: [broker],

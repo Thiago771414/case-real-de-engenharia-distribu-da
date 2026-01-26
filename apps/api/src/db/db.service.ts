@@ -6,9 +6,12 @@ export class DbService implements OnModuleDestroy {
   readonly pool: Pool;
 
   constructor() {
-    this.pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-    });
+    const connectionString = process.env.POSTGRES_URL;
+    if (!connectionString) {
+      throw new Error("POSTGRES_URL is not set in .env");
+    }
+
+    this.pool = new Pool({ connectionString });
   }
 
   async onModuleDestroy() {

@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
-import { Producer } from "kafkajs";
+import type { Producer } from "kafkajs";
 import { KafkaClient } from "./kafka.client";
 
 @Injectable()
@@ -19,18 +19,20 @@ export class KafkaProducer implements OnModuleInit, OnModuleDestroy {
     await this.producer?.disconnect();
   }
 
-  async send(topic: string, payload: unknown, meta?: {
-  correlationId?: string;
-  idempotencyKey?: string;
-  eventType?: string;
-}) {
-  const value = JSON.stringify(payload);
-
-  await this.producer.send({
+  async send(
+    topic: string,
+    payload: unknown,
+    meta?: {
+      correlationId?: string;
+      idempotencyKey?: string;
+      eventType?: string;
+    },
+  ) {
+    await this.producer.send({
       topic,
       messages: [
         {
-          value,
+          value: JSON.stringify(payload),
           headers: {
             "x-correlation-id": meta?.correlationId ?? "",
             "x-idempotency-key": meta?.idempotencyKey ?? "",
