@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
-import { KafkaClient } from "../messaging/kafka";
+import { KafkaClient } from "../messaging/kafka.client";
 import { TOPICS } from "../messaging/topics";
 import { IdempotencyStore } from "./idempotency.store";
 import {
@@ -10,6 +10,8 @@ import {
 } from "./orders.events";
 import { MetricsService } from "../metrics/metrics.service";
 import { trace, SpanStatusCode } from "@opentelemetry/api";
+import { OrdersRepository } from "./orders.repository";
+
 
 const tracer = trace.getTracer("minishop-worker");
 
@@ -21,6 +23,7 @@ export class OrdersProcessor {
     private readonly kafka: KafkaClient,
     private readonly idem: IdempotencyStore,
     private readonly metrics: MetricsService,
+    private readonly ordersRepo: OrdersRepository, // ✅ injetar OrdersRepository
   ) {}
 
   private sleep(ms: number) {
@@ -80,6 +83,11 @@ export class OrdersProcessor {
         return;
       } catch (err) {
         lastErr = err;
+
+        await this.ordersRepo.markFailed(
+          evt.data.orderId,
+          err instanceof Error ? err.message : String(err),
+        );
 
         if (attempt < maxAttempts) {
           // ✅ métrica: retry
@@ -204,6 +212,8 @@ export class OrdersProcessor {
       processedAt: new Date().toISOString(),
       orderId,
     });
+
+    await this.ordersRepo.markProcessed(orderId);
 
     // ✅ métrica: processado com sucesso
     this.metrics.ordersProcessed.inc();

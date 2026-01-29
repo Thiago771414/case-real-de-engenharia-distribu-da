@@ -5,6 +5,7 @@ import { OutboxModule } from "./outbox/outbox.module";
 import { MetricsModule } from "./metrics/metrics.module";
 import { OrdersModule } from "./orders/orders.module";
 import { MessagingModule } from "./messaging/messaging.module";
+import { AdminModule } from "./admin/admin.module";
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { MessagingModule } from "./messaging/messaging.module";
     MessagingModule,
     OutboxModule,
     OrdersModule,
+    AdminModule,
   ],
 })
-export class AppModule { }
+export class AppModule {}

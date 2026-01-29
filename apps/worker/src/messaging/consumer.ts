@@ -1,9 +1,12 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import type { Consumer } from "kafkajs";
-import { KafkaClient } from "./kafka";
+import { KafkaClient } from "../messaging/kafka.client";
 import { TOPICS } from "./topics";
 import { OrdersProcessor } from "../orders/orders.processor";
-import { OrdersCreatedEventSchema } from "../orders/orders.events";
+import {
+  OrdersCreatedEventSchema,
+  OrdersCreatedDlqEventSchema,
+} from "../orders/orders.events";
 
 @Injectable()
 export class KafkaConsumer implements OnModuleInit, OnModuleDestroy {
@@ -19,8 +22,15 @@ export class KafkaConsumer implements OnModuleInit, OnModuleDestroy {
     this.consumer = this.kafka.consumer("minishop-worker-group");
 
     await this.consumer.connect();
+
+    // ✅ assina os dois tópicos
     await this.consumer.subscribe({
       topic: TOPICS.ORDERS_CREATED,
+      fromBeginning: true,
+    });
+
+    await this.consumer.subscribe({
+      topic: TOPICS.ORDERS_CREATED_DLQ,
       fromBeginning: true,
     });
 
@@ -37,22 +47,34 @@ export class KafkaConsumer implements OnModuleInit, OnModuleDestroy {
           return;
         }
 
+        // ✅ 1) DLQ audit: parse + log e para aqui
+        if (topic === TOPICS.ORDERS_CREATED_DLQ) {
+          const parsedDlq = OrdersCreatedDlqEventSchema.safeParse(json);
+          if (!parsedDlq.success) {
+            this.logger.error(`Invalid DLQ payload: ${parsedDlq.error.message}`);
+            return;
+          }
+
+          const evt = parsedDlq.data;
+          this.logger.warn(
+            `DLQ message received correlationId=${evt.correlationId} attempts=${evt.attempts} orderId=${evt.originalEvent?.data?.orderId ?? "?"}`,
+          );
+          return;
+        }
+
+        // ✅ 2) Normal flow: orders.created
         const parsed = OrdersCreatedEventSchema.safeParse(json);
         if (!parsed.success) {
-          this.logger.error(
-            `Invalid payload on ${topic}: ${parsed.error.message}`,
-          );
+          this.logger.error(`Invalid payload on ${topic}: ${parsed.error.message}`);
           return;
         }
 
         const evt = parsed.data;
 
         try {
-          // ✅ Aqui é o ponto certo: o OrdersProcessor já faz retry + DLQ + métricas + spans
+          // OrdersProcessor já faz retry + DLQ + métricas + spans
           await this.orders.processWithRetry(evt);
         } catch (err) {
-          // Em tese não deveria estourar porque processWithRetry manda pra DLQ no fim,
-          // mas deixamos log defensivo.
           const msg = err instanceof Error ? err.message : String(err);
           this.logger.error(
             `Unhandled error processing message correlationId=${evt.correlationId} orderId=${evt.data.orderId} err=${msg}`,
@@ -61,7 +83,7 @@ export class KafkaConsumer implements OnModuleInit, OnModuleDestroy {
       },
     });
 
-    this.logger.log(`Consuming: ${TOPICS.ORDERS_CREATED}`);
+    this.logger.log(`Consuming: ${TOPICS.ORDERS_CREATED} + ${TOPICS.ORDERS_CREATED_DLQ}`);
   }
 
   async onModuleDestroy() {

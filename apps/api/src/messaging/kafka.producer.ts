@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import type { Producer } from "kafkajs";
-import { KafkaClient } from "./kafka.client";
+import { KafkaClient } from "../messaging/kafka.client";
 
 @Injectable()
 export class KafkaProducer implements OnModuleInit, OnModuleDestroy {

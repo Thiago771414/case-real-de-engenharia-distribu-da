@@ -152,6 +152,9 @@ importers:
       kafkajs:
         specifier: ^2.2.4
         version: 2.2.4
+      pg:
+        specifier: ^8.17.2
+        version: 8.17.2
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -186,6 +189,9 @@ importers:
       '@types/node':
         specifier: ^22.19.3
         version: 22.19.6
+      '@types/pg':
+        specifier: ^8.16.0
+        version: 8.16.0
       '@types/supertest':
         specifier: ^6.0.2
         version: 6.0.3
@@ -5458,7 +5464,7 @@ snapshots:
 
   '@types/pg-pool@2.0.7':
     dependencies:
-      '@types/pg': 8.15.6
+      '@types/pg': 8.16.0
 
   '@types/pg@8.15.6':
     dependencies:

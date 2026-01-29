@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { KafkaClient } from "./kafka.client";
+import { KafkaClient } from "../messaging/kafka.client";
 import { KafkaProducer } from "./kafka.producer";
 
 @Module({
