@@ -15,6 +15,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    networks:
+      - minishop
 
   redis:
     image: redis:7-alpine
@@ -29,6 +31,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    networks:
+      - minishop
 
   kafka:
     image: redpandadata/redpanda:latest
@@ -60,6 +64,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 30
+    networks:
+      - minishop
 
   kafka-ui:
     image: redpandadata/console:latest
@@ -72,6 +78,60 @@ services:
     environment:
       # Redpanda Console (Kafka API)
       KAFKA_BROKERS: "kafka:9092"
+    networks:
+      - minishop
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: minishop-jaeger
+    ports:
+      - "16686:16686"   # UI
+      - "14250:14250"   # gRPC collector (usado pelo otel-collector)
+    restart: unless-stopped
+    networks:
+      - minishop
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    container_name: minishop-otel-collector
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol/config.yaml
+    ports:
+      - "4318:4318"     # OTLP HTTP
+    depends_on:
+      jaeger:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - minishop
+  
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    container_name: minishop-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    networks:
+      - minishop
+
+  grafana:
+    image: grafana/grafana:10.3.1
+    container_name: minishop-grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      prometheus:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - minishop
+
+networks:
+  minishop:
+    driver: bridge
 
 volumes:
   pg_data:

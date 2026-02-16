@@ -6,29 +6,25 @@ import * as http from "http";
 
 async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
-  console.log("[WORKER] Started (no HTTP)");
+  console.log("[OUTBOX-WORKER] Started");
 
   const metrics = app.get(MetricsService);
-  const port = Number(process.env.METRICS_PORT ?? 9100);
+  const port = Number(process.env.METRICS_PORT ?? 9200);
 
   const server = http.createServer(async (req, res) => {
     if (req.url === "/metrics") {
-      try {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", metrics.contentType);
-        res.end(await metrics.getMetrics());
-      } catch (e) {
-        res.statusCode = 500;
-        res.end("error collecting metrics");
-      }
+      res.statusCode = 200;
+      res.setHeader("Content-Type", metrics.contentType);
+      res.end(await metrics.getMetrics());
       return;
     }
-
     res.statusCode = 404;
     res.end("not found");
   });
 
-  server.listen(port, () => console.log(`[WORKER] Metrics on :${port}/metrics`));
+  server.listen(port, () =>
+    console.log(`[OUTBOX-WORKER] Metrics on :${port}/metrics`),
+  );
 }
 
 bootstrap();

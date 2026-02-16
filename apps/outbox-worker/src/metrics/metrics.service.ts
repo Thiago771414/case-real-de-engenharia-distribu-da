@@ -5,6 +5,8 @@ import {
   Registry,
   collectDefaultMetrics,
 } from "prom-client";
+import { Counter, Gauge, Registry } from "prom-client";
+
 
 @Injectable()
 export class MetricsService {
@@ -38,6 +40,32 @@ export class MetricsService {
     name: "orders_processing_duration_ms",
     help: "Order processing duration in ms",
     buckets: [50, 100, 200, 500, 1000, 2000],
+    registers: [this.registry],
+  });
+
+  readonly outboxSentTotal = new Counter({
+    name: "outbox_sent_total",
+    help: "Total outbox events sent",
+    labelNames: ["event_type", "topic"] as const,
+    registers: [this.registry],
+  });
+
+  readonly outboxFailedTotal = new Counter({
+    name: "outbox_failed_total",
+    help: "Total outbox publish failures",
+    labelNames: ["event_type", "topic"] as const,
+    registers: [this.registry],
+  });
+
+  readonly outboxInflight = new Gauge({
+    name: "outbox_inflight",
+    help: "Outbox events currently being published",
+    registers: [this.registry],
+  });
+
+  readonly outboxLagSeconds = new Gauge({
+    name: "outbox_lag_seconds",
+    help: "Lag in seconds of oldest pending outbox event",
     registers: [this.registry],
   });
 

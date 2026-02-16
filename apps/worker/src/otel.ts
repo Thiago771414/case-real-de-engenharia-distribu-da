@@ -1,17 +1,14 @@
-import { diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
-import { ConsoleSpanExporter } from "@opentelemetry/sdk-trace-base";
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 
-diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR);
-
-const sdk = new NodeSDK({
-  traceExporter: new ConsoleSpanExporter(),
+export const otel = new NodeSDK({
+  traceExporter: new OTLPTraceExporter({
+    url:
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT ??
+      "http://localhost:4318/v1/traces",
+  }),
   instrumentations: [getNodeAutoInstrumentations()],
 });
 
-sdk.start();
-
-process.on("SIGTERM", async () => {
-  await sdk.shutdown();
-});
+otel.start();
