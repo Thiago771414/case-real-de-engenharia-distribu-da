@@ -1,44 +1,91 @@
-# Case real de engenharia distribuída (Event-Driven com Kafka)
+## 🚀 MiniShop — Event-Driven Distributed System (Production-Grade Case)
 
-Este repositório demonstra um **case real de engenharia distribuída**, implementando uma **arquitetura orientada a eventos (EDA)** com **Kafka**, separando claramente **API (Producer)** e **Worker (Consumer)**.
+Case profissional de engenharia distribuída com Kafka, Outbox Pattern, Observabilidade completa, Kubernetes manifests e integração com AI tooling (MCP).
 
-O foco não é apenas “enviar mensagens”, mas sim **confiabilidade, rastreabilidade e segurança de processamento**.
+Este repositório demonstra uma arquitetura event-driven pronta para produção, inspirada em sistemas reais de empresas de grande porte.
+
+O foco do projeto é:
+
+confiabilidade
+
+rastreabilidade
+
+idempotência
+
+observabilidade
+
+processamento assíncrono seguro
+
+separação de responsabilidades
+
+deploy cloud-ready
 
 ---
 
-## 🎯 Objetivo do projeto
+## 🎯 Objetivo
 
-Demonstrar, de forma prática e próxima de produção, como:
+Demonstrar, de forma prática, como construir um sistema distribuído com:
 
-- Separar responsabilidades entre API e Worker
-- Trabalhar com eventos assíncronos
-- Garantir **idempotência**
-- Propagar **correlationId**
-- Validar contratos de eventos em runtime
-- Processar mensagens com segurança usando Kafka
+✅ API desacoplada do processamento
+✅ Worker assíncrono Kafka
+✅ Outbox Pattern para consistência
+✅ DLQ + reprocessamento manual
+✅ Métricas Prometheus
+✅ Tracing distribuído (Jaeger)
+✅ Kubernetes manifests
+✅ MCP (AI tooling para observabilidade)
+
+Este projeto simula decisões reais de arquitetura adotadas em produção.
 
 ---
 
-## 🛒 MiniShop — Event-Driven Architecture with Kafka
-Este projeto demonstra uma arquitetura orientada a eventos pronta para produção, utilizando NestJS + Kafka, com clara separação entre API (produtor) e Worker (consumidor).
-O foco está na confiabilidade, idempotência e contratos de eventos robustos, em vez da simples troca de mensagens.
-
+##🧠 Visão geral da arquitetura
+```ts
+Client
+  ↓
+API (REST)
+  ↓
+PostgreSQL (orders + outbox)
+  ↓
+Outbox Worker → Kafka
+  ↓
+Worker Consumer
+  ↓
+Processamento idempotente
+  ↓
+Redis + PostgreSQL
+```
+Observabilidade:
+```ts
+Prometheus ← metrics
+Grafana ← dashboards
+Jaeger ← traces
+MCP server ← AI diagnostics
+```
 ---
 
 ## 1️⃣ Estrutura final do repositório
 ```ts
-minishop-event-driven/
+minishop/
 ├── apps/
-│   ├── api/        # REST API (Producer)
-│   ├── worker/     # Kafka Consumer (no HTTP)
-│   └── web/        # (opcional / placeholder)
+│   ├── api/              # REST API (Producer)
+│   ├── worker/           # Kafka consumer
+│   ├── outbox-worker/    # Outbox publisher
+│   └── web/              # placeholder
+│
 ├── infra/
-│   └── docker-compose.yml
+│   ├── docker-compose.yml
+│   ├── prometheus.yml
+│   ├── otel-collector.yaml
+│   └── grafana/
+│
+├── k8s/                  # Kubernetes manifests
+│
+├── mcp/                  # AI observability server
+│
 ├── diagrams/
-│   └── architecture.png
-│   └── architecture.mmd
-├── README.md
-└── package.json
+│
+└── README.md
 ```
 ---
 
@@ -54,179 +101,236 @@ minishop-event-driven/
   - Garante idempotência
   - Processa pedidos
   - Publica eventos de saída
-  - 
+ 
 ---
 
-## 🧩 Conceitos aplicados
+## ⚙️ Componentes principais
 
-- Event-Driven Architecture (EDA)
-- Kafka com Consumer Groups
-- Producer / Consumer desacoplados
-- Event Envelope Pattern
-- Validação de contratos em runtime (Zod)
-- Idempotência no consumer
-- Correlation ID para rastreabilidade
-- Processamento assíncrono seguro
-- Infra local com Docker Compose
+API
+REST endpoints
+grava pedidos no DB
+grava eventos no outbox
+NÃO publica Kafka diretamente
+correlação e idempotência
+Worker
+Kafka consumer
+idempotência garantida
+retry + DLQ
+métricas de processamento
+Outbox Worker
+polling do banco
+publica eventos no Kafka
+garante consistência transacional
+métricas específicas do outbox
 
 ---
 
-## 📦 Event Envelope Pattern
+## 📦 Outbox Pattern
 
-Todos os eventos seguem um **envelope padrão**, garantindo consistência e rastreabilidade:
+A API grava:
+pedido
+evento
+transaction commit
+O outbox-worker publica depois.
+
+Benefícios:
+✅ consistência garantida
+✅ zero perda de evento
+✅ reprocessamento seguro
+✅ auditabilidade
+
+---
+
+## 🔄 DLQ + Reprocessamento
+
+Eventos que falham vão para:
+```ts
+orders.created.dlq
+```
+A API possui endpoint administrativo:
+```ts
+POST /admin/dlq/reprocess
+```
+
+Permite replay manual controlado.
+
+---
+
+## 📊 Observabilidade
+
+Métricas Prometheus
+
+throughput de eventos
+
+falhas
+
+retries
+
+outbox lag
+
+eventos em voo
+
+Endpoints:
 
 ```ts
-{
-  eventId: string
-  type: string
-  occurredAt: string
-  correlationId: string
-  idempotencyKey: string
-  data: object
-}
-
+API:            :3000/metrics
+Worker:         :9100/metrics
+Outbox Worker:  :9200/metrics
 ```
 ---
 
-## Benefícios
+## Grafana Dashboard
 
-. Reprocessamento seguro
+Dashboards versionados em:
+```ts
+infra/grafana/dashboards/
+```
 
-. Observabilidade
+Inclui:
 
-. Evolução de eventos
+taxa de eventos
 
-. Debug facilitado
+falhas
 
-. Compatibilidade futura
+lag do outbox
 
----
-
-## 🔄 Fluxo de eventos
-
-Cliente chama POST /orders
-
-API publica orders.created
-
-Worker consome orders.created
-
-Worker processa o pedido
-
-Worker publica orders.processed
-
----
-
-### Observabilidade
-
-- Métricas no estilo Prometheus (`/metrics`)
-- Rastreamento distribuído com OpenTelemetry
-- CorrelationId propagado via HTTP → Kafka → Worker
-- Métricas para novas tentativas, DLQ e tempo de processamento
+latência
   
 ---
 
-## 📡 Diagrama de arquitetura
-  Client -->|POST /orders| API
-  API -->|orders.created| Kafka[(Kafka)]
-  Kafka -->|consume| Worker
-  Worker -->|orders.processed| Kafka
-  Worker --> Redis[(Redis)]
-  Worker --> DB[(PostgreSQL)]
+## Tracing distribuído
+
+OpenTelemetry + Jaeger
+```ts
+http://localhost:16686
+```
+Rastreia:
+```ts
+HTTP → Kafka → Worker → DB
+```
+
+---
+
+## 🤖 MCP (AI Tooling)
+
+Servidor MCP permite que LLMs consultem:
+
+Prometheus
+
+métricas
+
+targets
+
+observabilidade
+
+Exemplo:
+
+AI pode diagnosticar falhas automaticamente.
+
+Diretório:
+```ts
+/mcp
+```
+---
+
+## 🧪 Testes
+
+unitários
+
+integração
+
+---
+
+## 🛠️ Stack
+
+Node.js + TypeScript
+
+NestJS
+
+Kafka (Redpanda)
+
+PostgreSQL
+
+Redis
+
+Prometheus
+
+Grafana
+
+OpenTelemetry
+
+Jaeger
+
+Docker
+
+Kubernetes
+
+MCP (AI tooling)
   
 ---
 
-## 🧪 Exemplo de uso
-Request
-```ts
-POST /orders
-Headers:
-  x-correlation-id: corr-001
-  x-idempotency-key: order-c1-001
-```
-```ts
-{
-  "customerId": "c1",
-  "items": [
-    { "productId": "p1", "qty": 2, "price": 10.5 }
-  ]
-}
-```
-Response
-```ts
-{
-  "orderId": "uuid",
-  "status": "created",
-  "total": 21
-}
-```
----
+## ▶️ Executar local
 
-## ⚙️ Como executar o projeto
-
-Subir a infraestrutura
+Subir infraestrutura:
 ```ts
 pnpm infra:up
 ```
-Infra inclui:
-Kafka (Redpanda)
-Kafka UI
-Redis
-PostgreSQL
-
-Subir a API
+Rodar API:
 ```ts
 pnpm -C apps/api start:dev
 ```
-Subir o Worker
+Rodar worker:
 ```ts
 pnpm -C apps/worker start:dev
 ```
----
-
-## 🛠️ Stack utilizada
-  Node.js + TypeScript
-  NestJS
-  Kafka (Redpanda)
-  Zod
-  Docker Compose
-  Redis
-  PostgreSQL
-  
----
-
-## ❓ Por que JSON + Zod e não Avro?
-
-Neste case foi adotado JSON com validação em runtime, ao invés de Avro, de forma intencional.
-
-Motivos:
-Menor complexidade operacional
-Debug mais simples
-Contratos explícitos no código
-Menos dependência de infraestrutura (Schema Registry)
-Excelente para times pequenos e médios
-Essa abordagem segue o modelo Schema-on-Read, muito comum em arquiteturas modernas.
-usado por:
-Netflix
-Uber
-Stripe
-Shopify
-AWS EventBridge
+Rodar outbox worker:
+```ts
+pnpm -C apps/outbox-worker start:dev
+```
+Rodar MCP:
+```ts
+pnpm -C mcp dev
+```
 
 ---
 
-## 🚀 Possíveis evoluções
-Versionamento de eventos (orders.created.v1)
-Dead Letter Queue (DLQ)
-Retry com backoff exponencial
-Métricas e observabilidade
-OpenTelemetry
-Outbox Pattern
-Particionamento por chave de negócio
+## ☸️ Kubernetes
+
+Manifests prontos em:
+```ts
+/k8s
+```
+
+Deploy:
+```ts
+kubectl apply -k k8s/
+```
+---
+
+---
+
+## 🚀 Evoluções possíveis
+
+GKE deploy
+
+CI/CD GitHub Actions
+
+Apigee gateway
+
+Feature flags
+
+BFF
+
+arquitetura hexagonal
+
+circuit breaker
+
+chaos testing
 
 ---
 
 ## 👤 Autor - Thiago Reis Lima
 
-Projeto desenvolvido como case profissional, focado em engenharia de software distribuída, mensageria e boas práticas de sistemas assíncronos.
+Case profissional de engenharia distribuída
 
 ---
