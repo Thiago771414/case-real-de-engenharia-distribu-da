@@ -122,38 +122,42 @@ export class OrdersProcessor {
   /**
    * Handler do evento: cria span + mede duração + chama processamento real
    */
-  async handleOrdersCreated(evt: OrdersCreatedEvent) {
-    return tracer.startActiveSpan(
-      'process.orders.created',
-      {
-        attributes: {
-          correlationId: evt.correlationId,
-          eventType: evt.type,
-          orderId: evt.data.orderId,
-          idempotencyKey: evt.idempotencyKey,
+  async handleOrdersCreated(evt: OrdersCreatedEvent): Promise<void> {
+    await new Promise<void>((resolve, reject) => {
+      tracer.startActiveSpan(
+        'process.orders.created',
+        {
+          attributes: {
+            correlationId: evt.correlationId,
+            eventType: evt.type,
+            orderId: evt.data.orderId,
+            idempotencyKey: evt.idempotencyKey,
+          },
         },
-      },
-      async (span) => {
-        // ✅ timer Prometheus (ms)
-        const endTimer = this.metrics.processingDuration.startTimer();
+        (span) => {
+          void (async () => {
+            const endTimer = this.metrics.processingDuration.startTimer();
 
-        try {
-          await this.processOrder(evt);
-
-          span.setStatus({ code: SpanStatusCode.OK });
-        } catch (err) {
-          span.recordException(err as Error);
-          span.setStatus({
-            code: SpanStatusCode.ERROR,
-            message: (err as Error).message,
-          });
-          throw err;
-        } finally {
-          endTimer();
-          span.end();
-        }
-      },
-    );
+            try {
+              await this.processOrder(evt);
+              span.setStatus({ code: SpanStatusCode.OK });
+              resolve();
+            } catch (err: unknown) {
+              const error = err instanceof Error ? err : new Error(String(err));
+              span.recordException(error);
+              span.setStatus({
+                code: SpanStatusCode.ERROR,
+                message: error.message,
+              });
+              reject(error);
+            } finally {
+              endTimer();
+              span.end();
+            }
+          })();
+        },
+      );
+    });
   }
 
   /**
@@ -166,7 +170,7 @@ export class OrdersProcessor {
     const orderId = evt.data.orderId;
     const key = `orders.created.v1:${evt.idempotencyKey}`;
 
-    const existing = await this.idem.get(key);
+    const existing = this.idem.get(key);
     if (existing) {
       this.logger.warn(
         `Skipping duplicate idempotencyKey=${evt.idempotencyKey} orderId=${orderId}`,
@@ -193,8 +197,8 @@ export class OrdersProcessor {
     }
 
     const producer = this.kafka.producer();
-    await producer.connect(); // (pode otimizar depois e manter conectado)
 
+    await producer.connect();
     await producer.send({
       topic: TOPICS.ORDERS_PROCESSED,
       messages: [
@@ -208,10 +212,9 @@ export class OrdersProcessor {
         },
       ],
     });
-
     await producer.disconnect();
 
-    await this.idem.set(key, {
+    this.idem.set(key, {
       processedAt: new Date().toISOString(),
       orderId,
     });

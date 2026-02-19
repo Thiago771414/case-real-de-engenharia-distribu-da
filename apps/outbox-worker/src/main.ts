@@ -11,20 +11,30 @@ async function bootstrap() {
   const metrics = app.get(MetricsService);
   const port = Number(process.env.METRICS_PORT ?? 9200);
 
-  const server = http.createServer(async (req, res) => {
+  const server = http.createServer((req, res) => {
     if (req.url === '/metrics') {
-      res.statusCode = 200;
-      res.setHeader('Content-Type', metrics.contentType);
-      res.end(await metrics.getMetrics());
+      metrics
+        .getMetrics()
+        .then((text) => {
+          res.statusCode = 200;
+          res.setHeader('Content-Type', metrics.contentType);
+          res.end(text);
+        })
+        .catch(() => {
+          res.statusCode = 500;
+          res.end('error collecting metrics');
+        });
+
       return;
     }
+
     res.statusCode = 404;
     res.end('not found');
   });
 
-  server.listen(port, () =>
-    console.log(`[OUTBOX-WORKER] Metrics on :${port}/metrics`),
-  );
+  server.listen(port, () => {
+    console.log(`[OUTBOX-WORKER] Metrics on :${port}/metrics`);
+  });
 }
 
-bootstrap();
+void bootstrap();

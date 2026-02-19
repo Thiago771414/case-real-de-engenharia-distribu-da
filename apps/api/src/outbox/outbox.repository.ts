@@ -1,17 +1,31 @@
 import { Injectable } from '@nestjs/common';
 import { DbService } from '../db/db.service';
 
+export type OutboxEventDbRow = {
+  id: string;
+  topic: string;
+  payload: unknown; // pode vir string/json
+  correlation_id: string;
+  idempotency_key: string;
+  event_type: string;
+  attempts: number;
+  max_attempts: number;
+};
+
 @Injectable()
 export class OutboxRepository {
   constructor(private readonly db: DbService) {}
 
-  async claimBatch(limit: number, lockerId: string, lockTtlSec: number) {
+  async claimBatch(
+    limit: number,
+    lockerId: string,
+    lockTtlSec: number,
+  ): Promise<OutboxEventDbRow[]> {
     const client = await this.db.pool.connect();
     try {
       await client.query('BEGIN');
 
-      // pega eventos prontos, ignora os já lockados por outro, e locka a linha
-      const { rows } = await client.query(
+      const result = await client.query<OutboxEventDbRow>(
         `
         SELECT *
         FROM outbox_events
@@ -28,6 +42,8 @@ export class OutboxRepository {
         [limit, lockTtlSec],
       );
 
+      const rows = result.rows;
+
       if (rows.length === 0) {
         await client.query('COMMIT');
         return [];
@@ -35,7 +51,7 @@ export class OutboxRepository {
 
       const ids = rows.map((r) => r.id);
 
-      await client.query(
+      await client.query<void>(
         `
         UPDATE outbox_events
         SET locked_at = now(), locked_by = $2
@@ -54,17 +70,19 @@ export class OutboxRepository {
     }
   }
 
-  async markSent(id: string) {
-    await this.db.pool.query(
+  async markSent(id: string): Promise<void> {
+    await this.db.pool.query<void>(
       `UPDATE outbox_events SET sent_at = now(), locked_at = NULL, locked_by = NULL WHERE id = $1`,
       [id],
     );
   }
 
-  async markFailed(id: string, error: string, baseBackoffMs: number) {
-    // backoff exponencial baseado em attempts
-    // next_attempt = now + base * 2^attempts (cap de 60s)
-    await this.db.pool.query(
+  async markFailed(
+    id: string,
+    error: string,
+    baseBackoffMs: number,
+  ): Promise<void> {
+    await this.db.pool.query<void>(
       `
       UPDATE outbox_events
       SET
@@ -79,8 +97,8 @@ export class OutboxRepository {
     );
   }
 
-  async markDead(id: string, error: string) {
-    await this.db.pool.query(
+  async markDead(id: string, error: string): Promise<void> {
+    await this.db.pool.query<void>(
       `
       UPDATE outbox_events
       SET

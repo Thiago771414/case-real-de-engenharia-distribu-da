@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Kafka } from 'kafkajs';
+import { Kafka, Consumer, Producer } from 'kafkajs';
 
 @Injectable()
 export class KafkaClient {
@@ -14,11 +14,11 @@ export class KafkaClient {
     });
   }
 
-  consumer(groupId: string) {
+  consumer(groupId: string): Consumer {
     return this.kafka.consumer({ groupId });
   }
 
-  producer() {
+  producer(): Producer {
     return this.kafka.producer();
   }
 }

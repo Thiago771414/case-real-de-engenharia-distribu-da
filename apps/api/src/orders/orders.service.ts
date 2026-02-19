@@ -6,6 +6,12 @@ import { CreateOrderSchema } from './dto';
 import { calcTotal } from './orders.schema';
 import { OrdersCreatedEvent } from './orders.events';
 
+type ExistingOrderRow = {
+  id: string;
+  status: string;
+  total: number | string;
+};
+
 @Injectable()
 export class OrdersService {
   constructor(
@@ -16,7 +22,7 @@ export class OrdersService {
   async createOrder(
     input: unknown,
     headers: { correlationId?: string; idempotencyKey?: string },
-  ) {
+  ): Promise<{ orderId: string; status: string; total: number }> {
     const body = CreateOrderSchema.parse(input);
 
     const correlationId = headers.correlationId ?? randomUUID();
@@ -24,17 +30,17 @@ export class OrdersService {
 
     const total = calcTotal(body.items);
 
-    // ✅ 1) idempotência (se já existe, devolve a mesma resposta)
-    const existing = await this.db.pool.query(
+    const existing = await this.db.pool.query<ExistingOrderRow>(
       `SELECT id, status, total FROM orders WHERE idempotency_key = $1`,
       [idempotencyKey],
     );
 
-    if (existing.rows[0]) {
+    const existingRow = existing.rows[0];
+    if (existingRow) {
       return {
-        orderId: existing.rows[0].id,
-        status: existing.rows[0].status,
-        total: Number(existing.rows[0].total),
+        orderId: existingRow.id,
+        status: existingRow.status,
+        total: Number(existingRow.total),
       };
     }
 
@@ -59,8 +65,7 @@ export class OrdersService {
     try {
       await client.query('BEGIN');
 
-      // ✅ 2) grava o pedido
-      await client.query(
+      await client.query<void>(
         `
         INSERT INTO orders (id, customer_id, total, status, idempotency_key, correlation_id)
         VALUES ($1, $2, $3, $4, $5, $6)
@@ -75,8 +80,7 @@ export class OrdersService {
         ],
       );
 
-      // ✅ 3) grava o evento na outbox (Kafka pode estar fora que não perde)
-      await client.query(
+      await client.query<void>(
         `
         INSERT INTO outbox_events
           (id, aggregate_type, aggregate_id, event_type, topic, payload, correlation_id, idempotency_key)
@@ -87,8 +91,8 @@ export class OrdersService {
           outboxId,
           'order',
           orderId,
-          event.type, // "orders.created.v1"
-          'orders.created', // topic lógico na outbox (ajuste se quiser usar TOPICS.ORDERS_CREATED)
+          event.type,
+          'orders.created',
           JSON.stringify(event),
           correlationId,
           idempotencyKey,
@@ -97,15 +101,15 @@ export class OrdersService {
 
       await client.query('COMMIT');
 
-      // ✅ métrica: pedido criado (agora = gravado com segurança + outbox)
       this.metrics.ordersCreated.inc();
 
       return { orderId, status: 'created', total };
-    } catch (e: any) {
+    } catch (e: unknown) {
       await client.query('ROLLBACK');
 
-      // ✅ Postgres unique_violation (idempotency_key unique)
-      if (e?.code === '23505') {
+      // Postgres unique_violation
+      const err = e as { code?: string };
+      if (err.code === '23505') {
         throw new ConflictException('Duplicate idempotency key');
       }
 

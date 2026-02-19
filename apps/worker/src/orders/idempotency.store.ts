@@ -1,15 +1,12 @@
 import { Injectable } from '@nestjs/common';
 
-type Entry = { value: unknown; expiresAt: number };
+type Entry = { value: Record<string, unknown>; expiresAt: number };
 
 @Injectable()
 export class IdempotencyStore {
   private readonly map = new Map<string, Entry>();
 
-  /**
-   * TTL default: 10 min
-   */
-  get(key: string) {
+  get(key: string): Record<string, unknown> | undefined {
     const e = this.map.get(key);
     if (!e) return undefined;
 
@@ -20,7 +17,11 @@ export class IdempotencyStore {
     return e.value;
   }
 
-  set(key: string, value: unknown, ttlMs = 10 * 60 * 1000) {
+  set(
+    key: string,
+    value: Record<string, unknown>,
+    ttlMs = 10 * 60 * 1000,
+  ): void {
     this.map.set(key, { value, expiresAt: Date.now() + ttlMs });
   }
 }

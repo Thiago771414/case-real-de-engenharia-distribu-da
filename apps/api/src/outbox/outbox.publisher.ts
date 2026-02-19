@@ -28,11 +28,14 @@ export class OutboxPublisher implements OnModuleInit {
 
   onModuleInit() {
     setInterval(() => {
-      void this.tick();
+      this.tick().catch((err) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.error(`[OUTBOX] tick failed: ${msg}`);
+      });
     }, this.intervalMs);
   }
 
-  private async tick() {
+  private async tick(): Promise<void> {
     const events = await this.repo.claimBatch(
       this.batchSize,
       this.lockerId,
@@ -57,41 +60,39 @@ export class OutboxPublisher implements OnModuleInit {
           const endTimer = this.metrics.processingDuration.startTimer();
 
           try {
-            // se excedeu max_attempts => dead
             if (evt.attempts >= evt.max_attempts) {
               await this.repo.markDead(evt.id, 'max_attempts_reached');
-              this.metrics.dlqTotal.inc(); // reaproveitando contador (ou crie outbox_dead_total)
+              this.metrics.dlqTotal.inc();
               span.setStatus({
                 code: SpanStatusCode.ERROR,
                 message: 'max_attempts_reached',
               });
-              span.end();
               return;
             }
 
-            const payload =
+            const payload: unknown =
               typeof evt.payload === 'string'
                 ? JSON.parse(evt.payload)
                 : evt.payload;
 
-            await this.producer.send(evt.topic, evt.payload, {
+            await this.producer.send(evt.topic, payload, {
               correlationId: evt.correlation_id,
               idempotencyKey: evt.idempotency_key,
               eventType: evt.event_type,
             });
 
             await this.repo.markSent(evt.id);
-            this.metrics.ordersProcessed.inc(); // ou crie outbox_sent_total
+            this.metrics.ordersProcessed.inc();
             this.logger.log(`Outbox sent id=${evt.id} type=${evt.event_type}`);
             span.setStatus({ code: SpanStatusCode.OK });
-          } catch (err: any) {
-            const msg = err?.message ?? String(err);
+          } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
 
             await this.repo.markFailed(evt.id, msg, this.baseBackoffMs);
-            this.metrics.retriesTotal.inc(); // ou crie outbox_failed_total
+            this.metrics.retriesTotal.inc();
             this.logger.error(`Outbox failed id=${evt.id}: ${msg}`);
 
-            span.recordException(err);
+            span.recordException(err instanceof Error ? err : new Error(msg));
             span.setStatus({ code: SpanStatusCode.ERROR, message: msg });
           } finally {
             endTimer();

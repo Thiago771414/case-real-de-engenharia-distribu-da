@@ -12,6 +12,8 @@ export type OutboxEventRow = {
   eventType: string;
 };
 
+type OldestRow = { oldest: string | null };
+
 @Injectable()
 export class OutboxRepository {
   constructor(private readonly db: DbService) {}
@@ -75,50 +77,63 @@ export class OutboxRepository {
   }
 
   async markPublished(id: string) {
-    await this.db.pool.query(
+    await this.db.pool.query<void>(
       `
-      UPDATE outbox_events
-      SET sent_at = now(),
-          locked_at = NULL,
-          locked_by = NULL,
-          last_error = NULL
-      WHERE id = $1
-      `,
+    UPDATE outbox_events
+    SET sent_at = now(),
+        locked_at = NULL,
+        locked_by = NULL,
+        last_error = NULL
+    WHERE id = $1
+    `,
+      [id],
+    );
+  }
+
+  async markPublished(id: string) {
+    await this.db.pool.query<void>(
+      `
+    UPDATE outbox_events
+    SET sent_at = now(),
+        locked_at = NULL,
+        locked_by = NULL,
+        last_error = NULL
+    WHERE id = $1
+    `,
       [id],
     );
   }
 
   async markFailed(id: string, errorMessage: string) {
-    // backoff simples: tenta de novo em 5s, 15s, 60s, 5min...
-    await this.db.pool.query(
+    await this.db.pool.query<void>(
       `
-      UPDATE outbox_events
-      SET attempts = attempts + 1,
-          last_error = $2,
-          locked_at = NULL,
-          locked_by = NULL,
-          next_attempt_at = now() + (
-            CASE
-              WHEN attempts < 1 THEN interval '5 seconds'
-              WHEN attempts < 2 THEN interval '15 seconds'
-              WHEN attempts < 3 THEN interval '60 seconds'
-              ELSE interval '5 minutes'
-            END
-          )
-      WHERE id = $1
-      `,
+    UPDATE outbox_events
+    SET attempts = attempts + 1,
+        last_error = $2,
+        locked_at = NULL,
+        locked_by = NULL,
+        next_attempt_at = now() + (
+          CASE
+            WHEN attempts < 1 THEN interval '5 seconds'
+            WHEN attempts < 2 THEN interval '15 seconds'
+            WHEN attempts < 3 THEN interval '60 seconds'
+            ELSE interval '5 minutes'
+          END
+        )
+    WHERE id = $1
+    `,
       [id, errorMessage],
     );
   }
 
   async getOldestPendingCreatedAt(): Promise<Date | null> {
-    const result = await this.db.pool.query<{ oldest: Date | null }>(`
+    const result = await this.db.pool.query<OldestRow>(`
       SELECT MIN(created_at) AS oldest
       FROM outbox_events
       WHERE sent_at IS NULL
     `);
 
     const oldest = result.rows[0]?.oldest ?? null;
-    return oldest;
+    return oldest ? new Date(oldest) : null;
   }
 }

@@ -30,7 +30,7 @@ export class OutboxPublisher implements OnModuleInit, OnModuleDestroy {
     this.logger.log('[OUTBOX] Publisher started');
   }
 
-  async onModuleDestroy() {
+  onModuleDestroy() {
     if (this.timer) clearInterval(this.timer);
   }
 

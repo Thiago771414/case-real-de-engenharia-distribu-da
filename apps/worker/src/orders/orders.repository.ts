@@ -5,8 +5,8 @@ import { DbService } from '../db/db.service';
 export class OrdersRepository {
   constructor(private readonly db: DbService) {}
 
-  async markProcessed(orderId: string) {
-    await this.db.pool.query(
+  async markProcessed(orderId: string): Promise<void> {
+    await this.db.pool.query<void>(
       `
       UPDATE orders
       SET status = 'processed',
@@ -19,7 +19,7 @@ export class OrdersRepository {
     );
   }
 
-  async markFailed(orderId: string, error: string) {
+  async markFailed(orderId: string, error: string): Promise<void> {
     await this.db.pool.query(
       `
       UPDATE orders
