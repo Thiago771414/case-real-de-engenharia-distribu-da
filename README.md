@@ -61,7 +61,7 @@ Key benefits:
 ## 🧠 Architecture Overview
 
 <p align="center">
-![MiniShop Architecture](https://raw.githubusercontent.com/Thiago771414/imagensProjetos/main/slices/mobile/arquitetura.png)
+  <img src="https://raw.githubusercontent.com/Thiago771414/imagensProjetos/main/slices/mobile/arquitetura.png" width="900">
 </p>
 
 ```ts
@@ -120,10 +120,11 @@ Jaeger provides distributed tracing across the system.
 HTTP → Kafka → Worker → Database
 ```
 <p align="center">
-![Observability Dashboard](https://raw.githubusercontent.com/Thiago771414/imagensProjetos/main/slices/mobile/observalidade.png)
+  <img src="https://raw.githubusercontent.com/Thiago771414/imagensProjetos/main/slices/mobile/observalidade.png" width="900">
 </p>
 
 Observability Layer:
+
 ```ts
 Prometheus ← metrics
 Grafana ← dashboards
