@@ -58,8 +58,12 @@ Key benefits:
 ✔ better system observability
 ✔ easier fault isolation
 
-##🧠 Architecture Overview
+## 🧠 Architecture Overview
+
+<p align="center">
 ![MiniShop Architecture](https://raw.githubusercontent.com/Thiago771414/imagensProjetos/main/slices/mobile/arquitetura.png)
+</p>
+
 ```ts
 Client
   ↓
@@ -115,7 +119,9 @@ Jaeger provides distributed tracing across the system.
 ```ts
 HTTP → Kafka → Worker → Database
 ```
+<p align="center">
 ![Observability Dashboard](https://raw.githubusercontent.com/Thiago771414/imagensProjetos/main/slices/mobile/observalidade.png)
+</p>
 
 Observability Layer:
 ```ts
@@ -161,6 +167,7 @@ minishop/
 ```
 
 ## 🔧 Core Components
+
 API
 
 exposes REST endpoint (POST /orders)
