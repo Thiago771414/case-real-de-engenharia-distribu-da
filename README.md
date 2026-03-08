@@ -58,8 +58,6 @@ Key benefits:
 ✔ better system observability
 ✔ easier fault isolation
 
----
-
 ##🧠 Architecture Overview
 ```ts
 Client
@@ -135,7 +133,6 @@ system health targets
 diagnostic insights
 
 This enables AI-assisted troubleshooting and automated diagnostics.
----
 
 ## 📁 Repository Structure
 ```ts
@@ -160,7 +157,6 @@ minishop/
 │
 └── README.md
 ```
----
 
 ## 🔧 Core Components
 API
@@ -271,15 +267,12 @@ Tracks the full request lifecycle:
 ```ts
 HTTP → Kafka → Worker → Database
 ```
----
 
 ## 🧪 Testes
 
 unit tests
 
 integration tests
-
----
 
 ## 🛠️ Technology Stack
 
@@ -307,8 +300,6 @@ Kubernetes
 
 MCP (AI tooling)
   
----
-
 ## ▶️ Running Locally
 
 Start infrastructure:
@@ -331,9 +322,6 @@ Run MCP:
 ```ts
 pnpm -C mcp dev
 ```
-
----
-
 ## ☸️ Kubernetes Deployment
 
 Kubernetes manifests are available in:
@@ -344,10 +332,6 @@ Deploy with:
 ```ts
 kubectl apply -k k8s/
 ```
----
-
----
-
 ## 🚀 Possible Extensions
 
 GKE deployment
@@ -365,9 +349,9 @@ hexagonal architecture
 circuit breaker pattern
 
 chaos testing
----
 
 ## 👤 Autor - Thiago Reis Lima
 Distributed Systems Engineering Case Study
 
----
+![Dashboard](https://raw.githubusercontent.com/Thiago771414/imagensProjetos/blob/main/slices/mobile/arquitetura.png)
+![Dashboard](https://raw.githubusercontent.com/Thiago771414/imagensProjetos/blob/main/slices/mobile/observalidade.png)
