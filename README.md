@@ -58,6 +58,8 @@ Key benefits:
 ✔ better system observability
 ✔ easier fault isolation
 
+---
+
 ## 🧠 Architecture Overview
 
 <p align="center">
