@@ -1,45 +1,66 @@
-## 🚀 MiniShop — Event-Driven Distributed System (Production-Grade Case)
+## 🚀 MiniShop — Event-Driven Distributed Architecture
 
-Case profissional de engenharia distribuída com Kafka, Outbox Pattern, Observabilidade completa, Kubernetes manifests e integração com AI tooling (MCP).
+Production-grade distributed system demonstrating event-driven architecture, reliability patterns, and full observability.
 
-Este repositório demonstra uma arquitetura event-driven pronta para produção, inspirada em sistemas reais de empresas de grande porte.
+This project simulates how large-scale platforms process orders through asynchronous event pipelines, ensuring scalability, resilience, and traceability across distributed services.
 
-O foco do projeto é:
+## 🎯 Problem
 
-confiabilidade
+Modern platforms must handle high volumes of requests while maintaining reliability and scalability.
 
-rastreabilidade
+Traditional synchronous architectures often suffer from:
 
-idempotência
+tight coupling between services
 
-observabilidade
+cascading failures across the system
 
-processamento assíncrono seguro
+difficulty handling traffic spikes
 
-separação de responsabilidades
+limited observability and traceability
 
-deploy cloud-ready
+Systems responsible for critical workflows — such as orders, payments, or financial transactions — require architectures that guarantee data consistency and reliable asynchronous processing.
+
+## 💡 Solution
+
+MiniShop demonstrates a production-style event-driven architecture built with Kafka and the Outbox Pattern.
+
+Instead of processing requests synchronously, the system separates responsibilities across independent components:
+
+REST API receives requests
+
+PostgreSQL stores orders and events in an outbox table
+
+Outbox Worker publishes events to Kafka
+
+Worker Services consume and process events asynchronously
+
+This architecture ensures reliable event delivery, horizontal scalability, and improved fault tolerance.
+
+## 💼 Business Value
+
+Architectures like this are widely used in:
+
+e-commerce platforms
+
+payment systems
+
+financial services
+
+logistics platforms
+
+high-traffic APIs
+
+Key benefits:
+
+✔ reliable asynchronous processing
+✔ improved scalability
+✔ safe event delivery
+✔ better system observability
+✔ easier fault isolation
 
 ---
 
-## 🎯 Objetivo
-
-Demonstrar, de forma prática, como construir um sistema distribuído com:
-
-✅ API desacoplada do processamento
-✅ Worker assíncrono Kafka
-✅ Outbox Pattern para consistência
-✅ DLQ + reprocessamento manual
-✅ Métricas Prometheus
-✅ Tracing distribuído (Jaeger)
-✅ Kubernetes manifests
-✅ MCP (AI tooling para observabilidade)
-
-Este projeto simula decisões reais de arquitetura adotadas em produção.
-
----
-
-##🧠 Visão geral da arquitetura
+##🧠 Architecture Overview
 ```ts
 Client
   ↓
@@ -55,16 +76,68 @@ Processamento idempotente
   ↓
 Redis + PostgreSQL
 ```
-Observabilidade:
+## ⚙️ Key Engineering Concepts
+Event-Driven Architecture
+
+Requests are processed through asynchronous event pipelines.
+
+Outbox Pattern
+
+Ensures reliable event publishing and prevents event loss during database transactions.
+
+Idempotent Processing
+
+Workers guarantee safe processing even when retries occur.
+
+Dead Letter Queue (DLQ)
+
+Failed events are redirected for inspection and manual replay.
+
+Distributed Observability
+
+Metrics, logs, and traces provide full system visibility.
+
+## 📊 Observability
+
+Prometheus metrics expose:
+
+event throughput
+
+processing failures
+
+retry rates
+
+outbox lag
+
+Grafana dashboards enable real-time monitoring.
+
+Jaeger provides distributed tracing across the system.
+
+```ts
+HTTP → Kafka → Worker → Database
+```
+
+Observability Layer:
 ```ts
 Prometheus ← metrics
 Grafana ← dashboards
 Jaeger ← traces
 MCP server ← AI diagnostics
 ```
+## 🤖 AI-Assisted Observability (MCP)
+
+The system includes an MCP server that allows AI agents to query monitoring data such as:
+
+Prometheus metrics
+
+system health targets
+
+diagnostic insights
+
+This enables AI-assisted troubleshooting and automated diagnostics.
 ---
 
-## 1️⃣ Estrutura final do repositório
+## 📁 Repository Structure
 ```ts
 minishop/
 ├── apps/
@@ -89,159 +162,126 @@ minishop/
 ```
 ---
 
-## 🧠 Visão geral da arquitetura
-
-- **API**
-  - Expõe endpoint REST (`POST /orders`)
-  - Valida payload de entrada
-  - Publica eventos no Kafka
-- **Worker**
-  - Não expõe HTTP
-  - Consome eventos Kafka
-  - Garante idempotência
-  - Processa pedidos
-  - Publica eventos de saída
- 
----
-
-## ⚙️ Componentes principais
-
+## 🔧 Core Components
 API
-REST endpoints
-grava pedidos no DB
-grava eventos no outbox
-NÃO publica Kafka diretamente
-correlação e idempotência
+
+exposes REST endpoint (POST /orders)
+
+validates incoming payloads
+
+stores orders in PostgreSQL
+
+writes events to the outbox table
+
+ensures correlation and idempotency
+
+Important: the API does not publish directly to Kafka.
+
 Worker
+
 Kafka consumer
-idempotência garantida
-retry + DLQ
-métricas de processamento
+
+guarantees idempotent processing
+
+implements retry logic and DLQ handling
+
+processes orders asynchronously
+
+exposes processing metrics
+
 Outbox Worker
-polling do banco
-publica eventos no Kafka
-garante consistência transacional
-métricas específicas do outbox
 
----
+polls the database outbox table
 
-## 📦 Outbox Pattern
+publishes events to Kafka
 
-A API grava:
-pedido
-evento
-transaction commit
-O outbox-worker publica depois.
+ensures transactional consistency
 
-Benefícios:
-✅ consistência garantida
-✅ zero perda de evento
-✅ reprocessamento seguro
-✅ auditabilidade
+exposes outbox-specific metrics
 
----
+##📦 Outbox Pattern
 
-## 🔄 DLQ + Reprocessamento
+The API writes both the order and event in the same database transaction.
 
-Eventos que falham vão para:
+After the transaction commits, the Outbox Worker publishes the event to Kafka.
+
+Benefits:
+
+✅ guaranteed consistency
+✅ zero event loss
+✅ safe reprocessing
+✅ full auditability
+
+🔄 DLQ & Reprocessing
+
+Failed events are redirected to:
 ```ts
 orders.created.dlq
 ```
-A API possui endpoint administrativo:
+Administrative endpoint:
 ```ts
 POST /admin/dlq/reprocess
 ```
+Allows controlled manual replay of failed events.
 
-Permite replay manual controlado.
+##📊 Metrics
 
----
+Prometheus tracks:
 
-## 📊 Observabilidade
+event throughput
 
-Métricas Prometheus
+processing failures
 
-throughput de eventos
-
-falhas
-
-retries
+retry attempts
 
 outbox lag
 
-eventos em voo
+in-flight events
 
-Endpoints:
+Metrics endpoints:
 
 ```ts
 API:            :3000/metrics
 Worker:         :9100/metrics
 Outbox Worker:  :9200/metrics
 ```
----
+## 📈 Grafana Dashboards
 
-## Grafana Dashboard
-
-Dashboards versionados em:
+Dashboards are versioned in:
 ```ts
 infra/grafana/dashboards/
 ```
+Visualizations include:
 
-Inclui:
+event throughput
 
-taxa de eventos
+processing failures
 
-falhas
+outbox lag
 
-lag do outbox
+latency
 
-latência
-  
----
+## 🔎 Distributed Tracing
 
-## Tracing distribuído
-
-OpenTelemetry + Jaeger
+Powered by OpenTelemetry + Jaeger
 ```ts
 http://localhost:16686
 ```
-Rastreia:
+Tracks the full request lifecycle:
 ```ts
-HTTP → Kafka → Worker → DB
-```
-
----
-
-## 🤖 MCP (AI Tooling)
-
-Servidor MCP permite que LLMs consultem:
-
-Prometheus
-
-métricas
-
-targets
-
-observabilidade
-
-Exemplo:
-
-AI pode diagnosticar falhas automaticamente.
-
-Diretório:
-```ts
-/mcp
+HTTP → Kafka → Worker → Database
 ```
 ---
 
 ## 🧪 Testes
 
-unitários
+unit tests
 
-integração
+integration tests
 
 ---
 
-## 🛠️ Stack
+## 🛠️ Technology Stack
 
 Node.js + TypeScript
 
@@ -269,39 +309,38 @@ MCP (AI tooling)
   
 ---
 
-## ▶️ Executar local
+## ▶️ Running Locally
 
-Subir infraestrutura:
+Start infrastructure:
 ```ts
 pnpm infra:up
 ```
-Rodar API:
+Run API:
 ```ts
 pnpm -C apps/api start:dev
 ```
-Rodar worker:
+Run worker:
 ```ts
 pnpm -C apps/worker start:dev
 ```
-Rodar outbox worker:
+Run outbox worker:
 ```ts
 pnpm -C apps/outbox-worker start:dev
 ```
-Rodar MCP:
+Run MCP:
 ```ts
 pnpm -C mcp dev
 ```
 
 ---
 
-## ☸️ Kubernetes
+## ☸️ Kubernetes Deployment
 
-Manifests prontos em:
+Kubernetes manifests are available in:
 ```ts
 /k8s
 ```
-
-Deploy:
+Deploy with:
 ```ts
 kubectl apply -k k8s/
 ```
@@ -309,28 +348,26 @@ kubectl apply -k k8s/
 
 ---
 
-## 🚀 Evoluções possíveis
+## 🚀 Possible Extensions
 
-GKE deploy
+GKE deployment
 
-CI/CD GitHub Actions
+GitHub Actions CD
 
-Apigee gateway
+API Gateway (Apigee)
 
-Feature flags
+feature flags
 
-BFF
+BFF architecture
 
-arquitetura hexagonal
+hexagonal architecture
 
-circuit breaker
+circuit breaker pattern
 
 chaos testing
-
 ---
 
 ## 👤 Autor - Thiago Reis Lima
-
-Case profissional de engenharia distribuída
+Distributed Systems Engineering Case Study
 
 ---
