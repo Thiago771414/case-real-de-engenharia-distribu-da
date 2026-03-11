@@ -23,6 +23,13 @@ This project simulates how large-scale platforms process orders through asynchro
 ![Container](https://img.shields.io/badge/Container-Docker-blue)
 
 ![AI Observability](https://img.shields.io/badge/AI-MCP%20Diagnostics-purple)
+![CI](https://img.shields.io/badge/CI-GitHub%20Actions-blue)
+![Tests](https://img.shields.io/badge/Tests-Automated-green)
+![Reliability](https://img.shields.io/badge/System-Reliability-critical)
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Thiago771414/imagensProjetos/main/slices/mobile/arquitetura.png" width="900">
+</p>
 
 ## 🎯 Problem
 
@@ -81,10 +88,6 @@ Key benefits:
 ---
 
 ## 🧠 Architecture Overview
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/Thiago771414/imagensProjetos/main/slices/mobile/arquitetura.png" width="900">
-</p>
 
 ```ts
 Client
